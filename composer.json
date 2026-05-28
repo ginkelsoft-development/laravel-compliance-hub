@@ -1,0 +1,79 @@
+{
+  "name": "ginkelsoft/laravel-compliance-hub",
+  "description": "Umbrella package for the GinkelSoft GDPR/AVG compliance family. Installing this single package pulls in retention, right-to-be-forgotten, subject access, consent and breach registry, and exposes a compliance:verify command that checks every audit-log chain in one shot.",
+  "keywords": [
+    "laravel",
+    "gdpr",
+    "avg",
+    "compliance",
+    "hub",
+    "audit-log",
+    "hash-chain",
+    "ginkelsoft"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Wietse van Ginkel",
+      "email": "info@ginkelsoft.com",
+      "homepage": "https://ginkelsoft.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^10.0 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/database": "^10.0 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/console": "^10.0 || ^11.0 || ^12.0 || ^13.0",
+    "ginkelsoft/laravel-compliance-core": "dev-development",
+    "ginkelsoft/laravel-data-retention": "dev-development",
+    "ginkelsoft/laravel-data-right-to-be-forgotten": "dev-development",
+    "ginkelsoft/laravel-data-subject-access": "dev-development",
+    "ginkelsoft/laravel-data-consent": "dev-development",
+    "ginkelsoft/laravel-data-breach-registry": "dev-development"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0 || ^9.0 || ^10.0 || ^11.0",
+    "pestphp/pest": "^2.30 || ^3.0",
+    "phpunit/phpunit": "^10.5 || ^11.0 || ^12.0",
+    "phpstan/phpstan": "^1.10 || ^2.0",
+    "laravel/pint": "^1.18"
+  },
+  "repositories": [
+    {"type": "path", "url": "../laravel-compliance-core", "options": {"symlink": true}},
+    {"type": "path", "url": "../laravel-data-retention", "options": {"symlink": true}},
+    {"type": "path", "url": "../laravel-data-right-to-be-forgotten", "options": {"symlink": true}},
+    {"type": "path", "url": "../laravel-data-subject-access", "options": {"symlink": true}},
+    {"type": "path", "url": "../laravel-data-consent", "options": {"symlink": true}},
+    {"type": "path", "url": "../laravel-data-breach-registry", "options": {"symlink": true}}
+  ],
+  "autoload": {
+    "psr-4": {
+      "Ginkelsoft\\ComplianceHub\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ginkelsoft\\ComplianceHub\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Ginkelsoft\\ComplianceHub\\ComplianceHubServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest",
+    "analyse": "vendor/bin/phpstan analyse",
+    "format": "vendor/bin/pint"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
