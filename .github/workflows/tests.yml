@@ -60,6 +60,19 @@ jobs:
           extensions: mbstring, pdo, sqlite, bcmath
           coverage: none
 
+      - name: Checkout sibling packages
+        run: |
+          cd ..
+          for repo in laravel-compliance-core \
+                     laravel-data-retention \
+                     laravel-data-right-to-be-forgotten \
+                     laravel-data-subject-access \
+                     laravel-data-consent \
+                     laravel-data-breach-registry; do
+            git clone --depth 1 --branch development \
+              "https://github.com/ginkelsoft-development/$repo.git"
+          done
+
       - name: Install dependencies
         run: |
           composer require "illuminate/support:${{ matrix.laravel }}" \
@@ -83,6 +96,19 @@ jobs:
           php-version: 8.3
           coverage: none
 
+      - name: Checkout sibling packages
+        run: |
+          cd ..
+          for repo in laravel-compliance-core \
+                     laravel-data-retention \
+                     laravel-data-right-to-be-forgotten \
+                     laravel-data-subject-access \
+                     laravel-data-consent \
+                     laravel-data-breach-registry; do
+            git clone --depth 1 --branch development \
+              "https://github.com/ginkelsoft-development/$repo.git"
+          done
+
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
 
@@ -100,6 +126,19 @@ jobs:
         with:
           php-version: 8.3
           coverage: none
+
+      - name: Checkout sibling packages
+        run: |
+          cd ..
+          for repo in laravel-compliance-core \
+                     laravel-data-retention \
+                     laravel-data-right-to-be-forgotten \
+                     laravel-data-subject-access \
+                     laravel-data-consent \
+                     laravel-data-breach-registry; do
+            git clone --depth 1 --branch development \
+              "https://github.com/ginkelsoft-development/$repo.git"
+          done
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
