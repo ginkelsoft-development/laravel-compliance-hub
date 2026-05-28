@@ -153,6 +153,38 @@ vendor/bin/phpstan analyse --memory-limit=1G
 vendor/bin/pint --test
 ```
 
+## Reporting bugs
+
+Found a bug or unexpected behaviour? We want to hear about it.
+
+**Preferred — open a GitHub issue:**
+[https://github.com/ginkelsoft-development/laravel-compliance-hub/issues/new](https://github.com/ginkelsoft-development/laravel-compliance-hub/issues/new)
+
+When opening an issue, please include:
+
+1. **Versions** — PHP, Laravel, and `ginkelsoft/laravel-compliance-hub`
+   (`composer show ginkelsoft/laravel-compliance-hub`).
+2. **What you did** — the artisan command, code snippet, or steps that
+   triggered the bug.
+3. **What you expected** vs **what actually happened** — include full
+   error output or a stack trace if there is one.
+4. **A minimal reproduction** if you can — a failing test or a small
+   code sample beats a long description.
+
+**Security-sensitive findings** (anything that could expose personal
+data, break a hash-chain, or bypass an audit log) — please **do not**
+open a public issue. E-mail **info@ginkelsoft.com** directly with
+"SECURITY" in the subject line and we will respond privately.
+
+**Not on GitHub?** You can also e-mail **info@ginkelsoft.com** with the
+same information.
+
+## Contact
+
+For commercial support, integration questions, or anything that doesn't
+fit a GitHub issue: **info@ginkelsoft.com** —
+[https://ginkelsoft.com](https://ginkelsoft.com).
+
 ## License
 
 MIT License — see [LICENSE](LICENSE).
