@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Composer\InstalledVersions;
 use Ginkelsoft\ComplianceCore\Config\LogSecret;
 use Ginkelsoft\ComplianceCore\Support\HashChain;
+use Ginkelsoft\ComplianceHub\Actions\ResolveFamilyVersions;
 use Illuminate\Support\Facades\DB;
 
 it('compliance:verify exits 0 when all chains are empty', function (): void {
@@ -61,7 +63,7 @@ it('compliance:report renders JSON when asked', function (): void {
     $decoded = json_decode($content, true);
 
     expect($decoded)->toBeArray()
-        ->and($decoded)->toHaveKeys(['generated_at', 'chains'])
+        ->and($decoded)->toHaveKeys(['generated_at', 'chains', 'family_versions'])
         ->and(array_column($decoded['chains'], 'table'))->toEqualCanonicalizing([
             'retention_log',
             'forget_log',
@@ -70,9 +72,53 @@ it('compliance:report renders JSON when asked', function (): void {
             'breach_event_log',
         ]);
 
+    expect($decoded['family_versions'])->toHaveKeys([
+        'ginkelsoft/laravel-compliance-hub',
+        'ginkelsoft/laravel-compliance-core',
+        'ginkelsoft/laravel-data-retention',
+        'ginkelsoft/laravel-data-right-to-be-forgotten',
+        'ginkelsoft/laravel-data-subject-access',
+        'ginkelsoft/laravel-data-consent',
+        'ginkelsoft/laravel-data-breach-registry',
+    ]);
+
+    foreach ($decoded['family_versions'] as $package => $version) {
+        expect($version)->toBeString()->not->toBe('');
+    }
+
     @unlink($path);
 });
 
 it('compliance:report rejects an unknown format', function (): void {
     $this->artisan('compliance:report', ['--format' => 'pdf'])->assertFailed();
+});
+
+it('compliance:report Markdown output includes a family package versions section', function (): void {
+    $path = sys_get_temp_dir().'/compliance-hub-test-'.uniqid().'.md';
+
+    $this->artisan('compliance:report', ['--output' => $path])->assertExitCode(0);
+
+    $content = (string) file_get_contents($path);
+
+    expect($content)->toContain('## Family package versions')
+        ->and($content)->toContain('ginkelsoft/laravel-compliance-hub')
+        ->and($content)->toContain('ginkelsoft/laravel-compliance-core')
+        ->and($content)->toContain('ginkelsoft/laravel-data-retention')
+        ->and($content)->toContain('ginkelsoft/laravel-data-right-to-be-forgotten')
+        ->and($content)->toContain('ginkelsoft/laravel-data-subject-access')
+        ->and($content)->toContain('ginkelsoft/laravel-data-consent')
+        ->and($content)->toContain('ginkelsoft/laravel-data-breach-registry');
+
+    @unlink($path);
+});
+
+it('ResolveFamilyVersions reports "not installed" for a missing package without throwing', function (): void {
+    $resolver = new ResolveFamilyVersions;
+
+    expect(InstalledVersions::isInstalled('ginkelsoft/this-package-does-not-exist'))->toBeFalse();
+
+    $reflection = new ReflectionMethod($resolver, 'resolveOne');
+    $reflection->setAccessible(true);
+
+    expect($reflection->invoke($resolver, 'ginkelsoft/this-package-does-not-exist'))->toBe('not installed');
 });
