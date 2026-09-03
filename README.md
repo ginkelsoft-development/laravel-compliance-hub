@@ -9,9 +9,13 @@
 ## Overview
 
 Umbrella for the GinkelSoft GDPR / AVG compliance family. Installing this
-single package pulls in every member of the family and adds two Artisan
+single package pulls in every member of the family and adds Artisan
 commands that operate across all five audit-log chains in one shot:
 
+- **`compliance:install`** — publishes every config and migration tag in
+  the family (11 tags across 6 packages) in a single command, then runs
+  `migrate`. Replaces running `vendor:publish` eleven times by hand. See
+  below.
 - **`compliance:verify`** — runs `HashChain::verify()` on every audit-log
   table in the family. Exits **non-zero** when at least one chain is
   tampered or otherwise unverifiable. Perfect for a scheduled job that
@@ -51,7 +55,14 @@ composer require ginkelsoft/laravel-compliance-hub
 ```
 
 Composer pulls in core + the five functional packages automatically. Then
-publish each one's config and migrations:
+publish every family config and migration in one go:
+
+```bash
+php artisan compliance:install
+```
+
+This is equivalent to running `vendor:publish` for every tag below, then
+`migrate`:
 
 ```bash
 php artisan vendor:publish --tag=compliance-config
@@ -79,6 +90,52 @@ consent, breach. Rotate it only as part of an explicit, documented audit
 rotation procedure.
 
 ## Usage
+
+### Install the whole family in one command
+
+```bash
+php artisan compliance:install                # publish everything, then migrate
+php artisan compliance:install --force         # overwrite already-published files
+php artisan compliance:install --no-interaction
+php artisan compliance:install --skip-migrate  # publish only, run `migrate` yourself
+```
+
+Output:
+
+```
+Publishing the GinkelSoft compliance family assets...
+
++---------------------------------+----------------------------+-------+
+| Asset                           | Tag                        | Files |
++---------------------------------+----------------------------+-------+
+| Compliance core config          | compliance-config          |     1 |
+| Data retention config           | data-retention-config      |     1 |
+| Data retention migration        | data-retention-migrations  |     1 |
+| Right to be forgotten config    | forget-config               |     1 |
+| Right to be forgotten migration | forget-migrations           |     1 |
+| Subject access config           | subject-access-config       |     1 |
+| Subject access migration        | subject-access-migrations   |     1 |
+| Consent config                  | consent-config               |     1 |
+| Consent migration                | consent-migrations           |     1 |
+| Breach registry config          | breach-config                |     1 |
+| Breach registry migration       | breach-migrations             |     2 |
++---------------------------------+----------------------------+-------+
+Published 11 tag(s), 12 file(s) total.
+
+Running migrations...
+GinkelSoft compliance family installed. Run `php artisan compliance:verify`
+to check the audit-log chains.
+```
+
+Every family package auto-loads its own migration unconditionally, so a
+plain `php artisan migrate` already creates every table without
+publishing anything — publishing is only needed if you want to
+**customize** a migration before it first runs. Because of that, if the
+`migrate` step hits a table that already exists (e.g. you already
+migrated once, then ran `compliance:install` again), it fails clearly
+with a non-zero exit code and an explanation instead of a raw stack
+trace; the files that were already published are unaffected. Re-run
+with `--skip-migrate` and reconcile the database by hand in that case.
 
 ### Verify every chain in one shot
 

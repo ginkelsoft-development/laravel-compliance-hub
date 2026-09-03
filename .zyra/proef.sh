@@ -23,6 +23,7 @@
 #      mens de draaiende app kan zien.
 #
 # Extra commando's om zelf te proberen na het starten (nieuwe shell):
+#   vendor/bin/testbench compliance:install --skip-migrate
 #   vendor/bin/testbench compliance:verify
 #   vendor/bin/testbench compliance:report
 #   vendor/bin/testbench compliance:migrate-v1-access-rows --dry-run
@@ -68,6 +69,11 @@ touch "$SQLITE"
 
 echo "-- migrate (elk familiepakket levert zijn eigen migraties via loadMigrationsFrom)"
 vendor/bin/testbench migrate --force --no-interaction
+
+echo "-- compliance:install --skip-migrate (publiceert alle 11 family-tags voor het eerst;"
+echo "   --skip-migrate omdat migrate hierboven al draaide — nogmaals migrate zou botsen"
+echo "   met de zojuist gepubliceerde migratiekopieën, zie de docblock van InstallCommand)"
+vendor/bin/testbench compliance:install --skip-migrate --force --no-interaction
 
 echo "-- COMPLIANCE_LOG_SECRET zetten voor deze sessie (alleen voor het proefdraaien)"
 export COMPLIANCE_LOG_SECRET="proefdraai-secret-niet-voor-productie"
