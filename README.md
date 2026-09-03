@@ -17,8 +17,9 @@ commands that operate across all five audit-log chains in one shot:
   tampered or otherwise unverifiable. Perfect for a scheduled job that
   pages whoever is on call.
 - **`compliance:report`** — bundles row counts and verify status per
-  chain into a single Markdown or JSON report. **No personal data** —
-  only counts and status, safe to drop into a board pack.
+  chain, plus the installed version of every family package, into a
+  single Markdown or JSON report. **No personal data** — only counts,
+  status and version strings, safe to drop into a board pack.
 - **`compliance:migrate-v1-access-rows`** — optional cleanup for
   installations upgrading from the monolithic v1.x package: copies old
   `subject_access_exported` rows out of `retention_log` into the
@@ -125,9 +126,13 @@ php artisan compliance:report --format=json --output=storage/reports/2026-05.jso
 ```
 
 The report contains row counts and verify status per chain, plus a
-"generated_at" timestamp. **No personal data.** Suitable for handing to
-the DPO every month or pasting into a board pack as evidence of art. 5(2)
-accountability.
+"generated_at" timestamp and a `family_versions` section (`## Family
+package versions` in Markdown) listing the installed Composer version of
+every family package — so an auditor can see exactly which package
+version produced each chain. A package that is not installed is reported
+as `"not installed"` rather than throwing. **No personal data.** Suitable
+for handing to the DPO every month or pasting into a board pack as
+evidence of art. 5(2) accountability.
 
 ### Migrate v1.x subject-access rows out of `retention_log`
 
