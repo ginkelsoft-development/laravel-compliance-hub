@@ -19,6 +19,11 @@ commands that operate across all five audit-log chains in one shot:
 - **`compliance:report`** — bundles row counts and verify status per
   chain into a single Markdown or JSON report. **No personal data** —
   only counts and status, safe to drop into a board pack.
+- **`compliance:migrate-v1-access-rows`** — optional cleanup for
+  installations upgrading from the monolithic v1.x package: copies old
+  `subject_access_exported` rows out of `retention_log` into the
+  purpose-built `subject_access_log` table. Idempotent, transaction-safe,
+  and `--dry-run`-able. See below.
 
 This package is the **art. 5(2) accountability** evidence-generator for
 the family. It owns no migrations and no models of its own; everything
@@ -124,12 +129,68 @@ The report contains row counts and verify status per chain, plus a
 the DPO every month or pasting into a board pack as evidence of art. 5(2)
 accountability.
 
+### Migrate v1.x subject-access rows out of `retention_log`
+
+In the monolithic v1.x package, subject-access exports (GDPR art. 15)
+were logged into the shared `retention_log` table (`action =
+subject_access_exported`, `retention_field = subject_access`). v2.x
+gives subject access its own `subject_access_log` table instead. **You
+do not have to migrate anything** — the upstream UPGRADE.md is explicit
+that old rows staying in `retention_log` is safe and its hash chain
+keeps verifying either way. If you want a clean split anyway (e.g.
+before pointing a reporting tool only at `subject_access_log`), run:
+
+```bash
+php artisan compliance:migrate-v1-access-rows --dry-run   # preview, writes nothing
+php artisan compliance:migrate-v1-access-rows              # write the rows
+php artisan compliance:migrate-v1-access-rows -v            # verbose per-row table
+php artisan compliance:migrate-v1-access-rows --format=json # tag migrated rows' format column
+```
+
+What it does and does not do:
+
+- **Reads** `retention_log` rows matching the v1.x subject-access
+  signature, and **writes** the equivalent row to `subject_access_log`,
+  appended to that table's own hash chain (a freshly computed chain for
+  the moved rows — not a replay of their original `retention_log`
+  hashes, which belong to a different chain with a different payload
+  shape).
+- **Never updates or deletes anything in `retention_log`.** That table
+  is append-only by design — mutating or removing a row would
+  invalidate every hash chained after it. The original rows stay
+  exactly where they are and their chain keeps verifying unchanged.
+- **Idempotent.** Every candidate row is matched against
+  `subject_access_log` on `subject_hash` + `model_type` +
+  `record_count` + `performed_at` before writing; rows already present
+  are skipped. Running the command any number of times never creates
+  duplicates.
+- **Transaction-safe.** Each row is written inside its own
+  `DB::transaction()`, which locks the tail of `subject_access_log` for
+  update and re-checks for a concurrent duplicate before appending — so
+  it can safely run alongside live `retention:export` traffic.
+- Rows it cannot interpret (a `model_id` that is not a 64-char subject
+  hash, or a `retention_period` that does not match the v1.x `"<n>
+  records"` convention) are skipped and reported with a reason; they
+  never abort the run.
+- v1.x never recorded an export `format`; migrated rows get
+  `--format`'s value (default `legacy`) so they are easy to tell apart
+  from native v2.x exports later.
+
+The hub still owns no migrations or tables of its own — this command
+only reads `retention_log` (owned by `laravel-data-retention`) and
+writes through `SubjectAccessLogEntry` (owned by
+`laravel-data-subject-access`).
+
 ## What the hub does NOT do
 
-- It does not modify any data. It only **reads** the audit logs to verify
-  hashes; it never writes.
-- It does not own its own tables. Every chain it verifies is the
-  responsibility of one of the family packages.
+- `compliance:verify` and `compliance:report` never write anything —
+  they only **read** the audit logs to verify hashes. The one exception
+  is the opt-in `compliance:migrate-v1-access-rows`, which writes new
+  rows to `subject_access_log` and never touches `retention_log` (see
+  above).
+- It does not own its own tables. Every chain it verifies (or, for the
+  migration command, writes to) is the responsibility of one of the
+  family packages.
 - It does not enforce a UI. Verify + report are CLI-first; build your own
   Filament / Nova / Livewire layer on top if you want a dashboard.
 
