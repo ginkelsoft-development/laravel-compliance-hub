@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ginkelsoft\ComplianceHub;
 
+use Ginkelsoft\ComplianceHub\Console\InstallCommand;
 use Ginkelsoft\ComplianceHub\Console\MigrateV1AccessRowsCommand;
 use Ginkelsoft\ComplianceHub\Console\ReportCommand;
 use Ginkelsoft\ComplianceHub\Console\VerifyCommand;
@@ -30,6 +31,7 @@ class ComplianceHubServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                InstallCommand::class,
                 VerifyCommand::class,
                 ReportCommand::class,
                 MigrateV1AccessRowsCommand::class,
