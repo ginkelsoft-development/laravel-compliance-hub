@@ -32,16 +32,20 @@ class VerifyCommand extends Command
      * proving anything — this is a developer misconfiguration, not a
      * tampering finding, so it must not fail the run by itself.
      */
-    private const MISSING_SECRET_WARNING = 'compliance.log_secret is empty — audit-log chains are being signed '
-        .'with an empty secret and verification cannot detect tampering. Set COMPLIANCE_LOG_SECRET (or '
-        .'DATA_RETENTION_LOG_SECRET for legacy installs) before relying on compliance:verify.';
+    private const MISSING_SECRET_WARNING = <<<'TEXT'
+        ⚠ compliance.log_secret is empty.
+          Audit-log hash chains are NOT tamper-evident against attackers with DB write access.
+          Set COMPLIANCE_LOG_SECRET in .env and run `compliance:verify` again.
+        TEXT;
 
     public function handle(VerifyAllChains $verifier): int
     {
         $secretMissing = LogSecret::value() === '';
 
         if ($secretMissing) {
+            $this->newLine();
             $this->warn(self::MISSING_SECRET_WARNING);
+            $this->newLine();
         }
 
         $results = $verifier->verify();
