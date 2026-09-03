@@ -8,8 +8,65 @@ use Ginkelsoft\ComplianceCore\Support\HashChain;
 use Ginkelsoft\ComplianceHub\Actions\ResolveFamilyVersions;
 use Illuminate\Support\Facades\DB;
 
+// De drie regels worden in één keer geschreven (SymfonyStyle::warn schrijft de
+// hele meerregelige tekst in één write-call), dus we controleren ze hieronder
+// als één aaneengesloten substring in plaats van losse expectsOutputToContain
+// calls per regel: Mockery matcht per doWrite-call maar één expectation
+// tegelijk, dus losse calls op dezelfde write zouden elkaar wegconcurreren.
+function missingSecretWarningText(): string
+{
+    return <<<'TEXT'
+        ⚠ compliance.log_secret is empty.
+          Audit-log hash chains are NOT tamper-evident against attackers with DB write access.
+          Set COMPLIANCE_LOG_SECRET in .env and run `compliance:verify` again.
+        TEXT;
+}
+
 it('compliance:verify exits 0 when all chains are empty', function (): void {
     $this->artisan('compliance:verify')->assertExitCode(0);
+});
+
+it('compliance:verify warns but exits 0 when log_secret is empty and every chain is empty', function (): void {
+    config()->set('compliance.log_secret', '');
+
+    $this->artisan('compliance:verify')
+        ->expectsOutputToContain(missingSecretWarningText())
+        ->assertExitCode(0);
+});
+
+it('compliance:verify warns and exits non-zero when log_secret is empty and a chain has rows', function (): void {
+    config()->set('compliance.log_secret', '');
+
+    $payload = [
+        'subject_id' => '01HXYZ',
+        'purpose' => 'newsletter',
+        'version' => '2026-05',
+        'action' => 'granted',
+        'source' => 'web',
+        'metadata' => null,
+        'occurred_at' => '2026-05-28 10:00:00',
+    ];
+    $hash = HashChain::compute($payload, '', '');
+
+    DB::table('consent_log')->insert($payload + [
+        'previous_hash' => '',
+        'hash' => $hash,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->artisan('compliance:verify')
+        ->expectsOutputToContain(missingSecretWarningText())
+        // De resultaattabel moet er ondanks de waarschuwing nog steeds staan: de
+        // run breekt niet af, de operator ziet nog steeds elke chain-status.
+        ->expectsOutputToContain('consent_log')
+        ->assertFailed();
+});
+
+it('compliance:verify does not warn when log_secret is set', function (): void {
+    $this->artisan('compliance:verify')
+        ->doesntExpectOutputToContain('compliance.log_secret is empty')
+        ->assertExitCode(0);
 });
 
 it('compliance:verify exits non-zero when a chain is tampered', function (): void {
