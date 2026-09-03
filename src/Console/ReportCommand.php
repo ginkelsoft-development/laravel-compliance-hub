@@ -11,8 +11,14 @@ use Illuminate\Support\Carbon;
 
 /**
  * Produces a bundled compliance report covering every audit log in the
- * family, in Markdown (default) or JSON. No personal data — counts and
- * verify status only.
+ * family, in Markdown (default) or JSON. No personal data — counts,
+ * verify status and installed family package versions only.
+ *
+ * The `family_versions` section (JSON key, or the "Family package
+ * versions" table in Markdown) lists the installed Composer version of
+ * every family package, so an auditor can see which package version
+ * produced each chain. A package that is not installed is reported as
+ * `"not installed"` rather than throwing.
  *
  * Intended for monthly export to the DPO, or to drop into a quarterly
  * board pack as evidence of GDPR art. 5(2) accountability.
@@ -29,7 +35,7 @@ class ReportCommand extends Command
         {--output= : Write to this file instead of STDOUT}';
 
     /** @var string */
-    protected $description = 'Produce a bundled compliance report across every audit log in the GinkelSoft compliance family.';
+    protected $description = 'Produce a bundled compliance report across every audit log in the GinkelSoft compliance family, including the installed version of each family package.';
 
     public function handle(VerifyAllChains $verifier, ResolveFamilyVersions $versionResolver): int
     {
