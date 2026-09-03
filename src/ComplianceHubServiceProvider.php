@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ginkelsoft\ComplianceHub;
 
+use Ginkelsoft\ComplianceHub\Console\MigrateV1AccessRowsCommand;
 use Ginkelsoft\ComplianceHub\Console\ReportCommand;
 use Ginkelsoft\ComplianceHub\Console\VerifyCommand;
 use Illuminate\Support\ServiceProvider;
@@ -11,8 +12,8 @@ use Illuminate\Support\ServiceProvider;
 /**
  * Service provider for the Laravel Compliance Hub.
  *
- * The hub itself adds no migrations, no config, no models — its sole
- * job is to expose two Artisan commands that verify and summarize the
+ * The hub itself adds no migrations, no config, no models — its
+ * Artisan commands verify, summarize, and (optionally) tidy up the
  * audit-log hash chains of every family member installed alongside it.
  *
  * Because the hub hard-requires every family package, the commands can
@@ -31,6 +32,7 @@ class ComplianceHubServiceProvider extends ServiceProvider
             $this->commands([
                 VerifyCommand::class,
                 ReportCommand::class,
+                MigrateV1AccessRowsCommand::class,
             ]);
         }
     }
