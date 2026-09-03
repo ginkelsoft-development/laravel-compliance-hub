@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ginkelsoft\ComplianceHub\Tests;
 
+use Composer\InstalledVersions;
 use Ginkelsoft\ComplianceCore\ComplianceCoreServiceProvider;
 use Ginkelsoft\ComplianceHub\ComplianceHubServiceProvider;
 use Ginkelsoft\DataBreachRegistry\DataBreachRegistryServiceProvider;
@@ -53,13 +54,47 @@ abstract class TestCase extends Orchestra
      * produced by other family packages. Tell Testbench to run every
      * sibling package's migrations so the tables exist before any test
      * runs.
+     *
+     * The install path is resolved via Composer\InstalledVersions instead
+     * of a hardcoded `vendor/ginkelsoft/...` path, because the family
+     * packages are installed as Composer path-repositories in CI/local dev
+     * (symlinked from sibling checkouts) and their exact vendor layout can
+     * change. A package that can't be resolved is skipped defensively
+     * rather than crashing the test suite.
      */
     protected function defineDatabaseMigrations(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/ginkelsoft/laravel-data-retention/database/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/ginkelsoft/laravel-data-right-to-be-forgotten/database/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/ginkelsoft/laravel-data-subject-access/database/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/ginkelsoft/laravel-data-consent/database/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/ginkelsoft/laravel-data-breach-registry/database/migrations');
+        foreach ($this->familyPackages() as $package) {
+            $path = $this->resolvePackageInstallPath($package);
+
+            if ($path === null) {
+                continue;
+            }
+
+            $this->loadMigrationsFrom($path.'/database/migrations');
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function familyPackages(): array
+    {
+        return [
+            'ginkelsoft/laravel-data-retention',
+            'ginkelsoft/laravel-data-right-to-be-forgotten',
+            'ginkelsoft/laravel-data-subject-access',
+            'ginkelsoft/laravel-data-consent',
+            'ginkelsoft/laravel-data-breach-registry',
+        ];
+    }
+
+    protected function resolvePackageInstallPath(string $package): ?string
+    {
+        if (! class_exists(InstalledVersions::class) || ! InstalledVersions::isInstalled($package)) {
+            return null;
+        }
+
+        return InstalledVersions::getInstallPath($package);
     }
 }
