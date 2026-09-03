@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ginkelsoft\ComplianceHub\Console;
 
+use Ginkelsoft\ComplianceHub\Actions\ResolveFamilyVersions;
 use Ginkelsoft\ComplianceHub\Actions\VerifyAllChains;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -30,7 +31,7 @@ class ReportCommand extends Command
     /** @var string */
     protected $description = 'Produce a bundled compliance report across every audit log in the GinkelSoft compliance family.';
 
-    public function handle(VerifyAllChains $verifier): int
+    public function handle(VerifyAllChains $verifier, ResolveFamilyVersions $versionResolver): int
     {
         $formatOption = $this->option('format');
         $format = is_string($formatOption) ? strtolower($formatOption) : 'markdown';
@@ -42,11 +43,12 @@ class ReportCommand extends Command
         }
 
         $results = $verifier->verify();
+        $familyVersions = $versionResolver->resolve();
         $generatedAt = Carbon::now()->utc();
 
         $rendered = $format === 'json'
-            ? $this->renderJson($results, $generatedAt)
-            : $this->renderMarkdown($results, $generatedAt);
+            ? $this->renderJson($results, $familyVersions, $generatedAt)
+            : $this->renderMarkdown($results, $familyVersions, $generatedAt);
 
         $outputOption = $this->option('output');
 
@@ -66,12 +68,14 @@ class ReportCommand extends Command
 
     /**
      * @param  list<array{label: string, table: string, present: bool, rows: int, verified: bool|null}>  $results
+     * @param  array<string, string>  $familyVersions
      */
-    private function renderJson(array $results, Carbon $generatedAt): string
+    private function renderJson(array $results, array $familyVersions, Carbon $generatedAt): string
     {
         $payload = [
             'generated_at' => $generatedAt->format(\DateTimeInterface::ATOM),
             'chains' => $results,
+            'family_versions' => $familyVersions,
         ];
 
         $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -81,8 +85,9 @@ class ReportCommand extends Command
 
     /**
      * @param  list<array{label: string, table: string, present: bool, rows: int, verified: bool|null}>  $results
+     * @param  array<string, string>  $familyVersions
      */
-    private function renderMarkdown(array $results, Carbon $generatedAt): string
+    private function renderMarkdown(array $results, array $familyVersions, Carbon $generatedAt): string
     {
         $lines = [];
         $lines[] = '# GinkelSoft Compliance Report';
@@ -105,6 +110,16 @@ class ReportCommand extends Command
 
         $lines[] = '';
         $lines[] = 'This report contains **no personal data** — only audit-chain row counts and verification status.';
+        $lines[] = '';
+        $lines[] = '## Family package versions';
+        $lines[] = '';
+        $lines[] = '| Package | Version |';
+        $lines[] = '| ------- | ------- |';
+
+        foreach ($familyVersions as $package => $version) {
+            $lines[] = sprintf('| `%s` | %s |', $package, $version);
+        }
+
         $lines[] = '';
 
         return implode("\n", $lines);
