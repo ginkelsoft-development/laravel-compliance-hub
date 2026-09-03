@@ -12,6 +12,46 @@ it('compliance:verify exits 0 when all chains are empty', function (): void {
     $this->artisan('compliance:verify')->assertExitCode(0);
 });
 
+it('compliance:verify warns but exits 0 when log_secret is empty and every chain is empty', function (): void {
+    config()->set('compliance.log_secret', '');
+
+    $this->artisan('compliance:verify')
+        ->expectsOutputToContain('compliance.log_secret is empty')
+        ->assertExitCode(0);
+});
+
+it('compliance:verify warns and exits non-zero when log_secret is empty and a chain has rows', function (): void {
+    config()->set('compliance.log_secret', '');
+
+    $payload = [
+        'subject_id' => '01HXYZ',
+        'purpose' => 'newsletter',
+        'version' => '2026-05',
+        'action' => 'granted',
+        'source' => 'web',
+        'metadata' => null,
+        'occurred_at' => '2026-05-28 10:00:00',
+    ];
+    $hash = HashChain::compute($payload, '', '');
+
+    DB::table('consent_log')->insert($payload + [
+        'previous_hash' => '',
+        'hash' => $hash,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->artisan('compliance:verify')
+        ->expectsOutputToContain('compliance.log_secret is empty')
+        ->assertFailed();
+});
+
+it('compliance:verify does not warn when log_secret is set', function (): void {
+    $this->artisan('compliance:verify')
+        ->doesntExpectOutputToContain('compliance.log_secret is empty')
+        ->assertExitCode(0);
+});
+
 it('compliance:verify exits non-zero when a chain is tampered', function (): void {
     $secret = LogSecret::value();
     $payload = [
